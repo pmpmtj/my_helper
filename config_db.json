@@ -1,0 +1,21 @@
+{
+  "STARTPROJECT_NAME": "my_helper",
+  "STARTAPP_NAME": "app_my_helper",
+  "USE_LOCAL_DATABASE": true,
+  "DB_NAME": "db_my_helper",
+  "DB_USER": "user_my_helper",
+  "DB_PASSWORD": "Change_ME",
+  "DB_HOST": "localhost",
+  "DB_PORT": "5432",
+  "POSTGRES_SUPERUSER": "postgres",
+  "TEMPLATE_TITLE": "Django Lean Starter (PostgreSQL)",
+  "TEMPLATE_HEADING": "WELCOME TO mY_Helper",
+  "REQUIREMENTS_PACKAGES": [
+    "django",
+    "psycopg[binary]",
+    "python-dotenv",
+    "yt-dlp",
+    "colorama",
+    "youtube-transcript-api>=0.6.2"
+  ]
+}

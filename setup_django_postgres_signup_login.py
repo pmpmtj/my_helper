@@ -403,6 +403,12 @@ from .forms import SignUpForm
 
 
 class SignUpView(CreateView):
+    """
+    User registration view.
+    
+    Handles new user account creation using a custom SignUpForm.
+    After successful registration, redirects to the login page.
+    """
     form_class = SignUpForm
     template_name = "registration/signup.html"
     success_url = reverse_lazy("login")  # after sign-up, go to login
@@ -929,7 +935,20 @@ urlpatterns = [
             # Step 11: Create views.py
             views_content = f'''from django.shortcuts import render
 
+
 def home(request):
+    """
+    Main home page view.
+    
+    Renders the base template for the main application homepage.
+    This serves as the entry point for authenticated users.
+    
+    Args:
+        request: Django HttpRequest object
+        
+    Returns:
+        HttpResponse with rendered base template
+    """
     return render(request, "{app_name}/base.html")'''
             
             views_file = self.project_dir / app_name / 'views.py'
@@ -978,6 +997,75 @@ urlpatterns = [
         except Exception as e:
             logger.error(f"Failed to update project URL configuration: {e}")
             return False
+    
+    def run_migrations(self) -> bool:
+        """
+        Run Django makemigrations and migrate commands.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.info("=== Running Django Migrations ===")
+        
+        try:
+            # Run makemigrations
+            logger.debug("Running makemigrations command")
+            result = run_command("python manage.py makemigrations", cwd=self.project_dir)
+            logger.info("✓ makemigrations completed successfully")
+            
+            # Run migrate
+            logger.debug("Running migrate command")
+            result = run_command("python manage.py migrate", cwd=self.project_dir)
+            logger.info("✓ migrate completed successfully")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to run migrations: {e}")
+            logger.error("Migration failure - stopping setup process")
+            return False
+    
+    def prompt_user_or_admin(self) -> bool:
+        """
+        Prompt user to choose between User or Admin setup.
+        If Admin is chosen, run createsuperuser command.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.info("=== User or Admin Setup ===")
+        
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            prompt = "Choose setup type - User or Admin (default: User): "
+            user_input = input(prompt).strip().lower()
+            
+            # Default to 'user' if empty input
+            if not user_input:
+                user_input = 'user'
+            
+            if user_input in ['user', 'admin']:
+                if user_input == 'admin':
+                    logger.info("Admin setup selected - creating superuser")
+                    try:
+                        logger.debug("Running createsuperuser command")
+                        result = run_command("python manage.py createsuperuser", cwd=self.project_dir, capture_output=False)
+                        logger.info("✓ Superuser created successfully")
+                    except Exception as e:
+                        logger.error(f"Failed to create superuser: {e}")
+                        return False
+                else:
+                    logger.info("User setup selected - skipping superuser creation")
+                
+                return True
+            else:
+                if attempt < max_attempts:
+                    logger.warning(f"Invalid input '{user_input}'. Please enter 'user' or 'admin'. Attempt {attempt}/{max_attempts}")
+                else:
+                    logger.error(f"Invalid input after {max_attempts} attempts. Setup cancelled.")
+                    return False
+        
+        return False
     
     def run_setup(self) -> bool:
         """
@@ -1030,7 +1118,9 @@ urlpatterns = [
                 ("Update Project URLs", lambda: self.update_project_urls(
                     self.config['STARTPROJECT_NAME'], 
                     self.config['STARTAPP_NAME']
-                ))
+                )),
+                ("Run Django Migrations", lambda: self.run_migrations()),
+                ("Setup User or Admin", lambda: self.prompt_user_or_admin())
             ]
             
             # Execute each step
@@ -1063,20 +1153,12 @@ urlpatterns = [
                 logger.info("• Update .env file with your cloud database credentials")
                 logger.info("• Ensure your cloud database is created and accessible")
             
-            logger.info("\nNext steps:")
+            logger.info("\nTo start the development server:")
+            logger.info("Run: python manage.py runserver")
+            logger.info("Then visit: http://127.0.0.1:8000/")
+            
             if not use_local_db:
-                logger.info("1. Update .env file with your cloud database credentials")
-                logger.info("2. Run: python manage.py makemigrations")
-                logger.info("3. Run: python manage.py migrate")
-                logger.info("4. (Optional) Run: python manage.py createsuperuser")
-                logger.info("5. Run: python manage.py runserver")
-                logger.info("6. Visit: http://127.0.0.1:8000/")
-            else:
-                logger.info("1. Run: python manage.py makemigrations")
-                logger.info("2. Run: python manage.py migrate")
-                logger.info("3. (Optional) Run: python manage.py createsuperuser")
-                logger.info("4. Run: python manage.py runserver")
-                logger.info("5. Visit: http://127.0.0.1:8000/")
+                logger.info("\nNote: If you need to update database credentials later, edit the .env file")
             
             logger.info("\nAuthentication testing:")
             logger.info("• Visit /accounts/signup/ to create a new user account")
